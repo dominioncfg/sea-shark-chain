@@ -12,11 +12,12 @@ public class Block<T> : IBlock<T>
         _transactions = new(args.Transactions);
     }
 
-    public bool Verify(byte[] authenticatedHashKey, byte[] nodeVerificationPublicKey, string? recalculatedParentBlockHash = null)
+    public bool Verify(byte[] authenticatedHashKey, int difficulty, byte[] nodeVerificationPublicKey, string? recalculatedParentBlockHash = null)
     {
         string recalculatedBlockHash = CalculateBlockHashIn64Base(Header.Number, Header.CreatedAtUtc, Transactions, recalculatedParentBlockHash, authenticatedHashKey);
+        var powIsValid = ProofOfWork.ValidateForNonce(recalculatedBlockHash, difficulty, Header.PowNonce, Header.HashIn64Base);
 
-        if (Header.HashIn64Base != recalculatedBlockHash)
+        if (!powIsValid)
             return false;
 
         if (Header.PreviousBlockHashIn64Base != recalculatedParentBlockHash)
@@ -27,9 +28,10 @@ public class Block<T> : IBlock<T>
 
     private static BlockHeader CreateHeaders(BlockCreationArgs<T> args)
     {
-        var hash = CalculateBlockHashIn64Base(args.BlockNumber, args.CreatedAtUtc, args.Transactions, args.ParentBlockHash, args.AuthenticatedHashKey);
-        var blockSignature = SignBlockHash(hash, args.CreatorNodeSigningKey);
-        return new BlockHeader(args.BlockNumber, args.CreatedAtUtc, hash, blockSignature, args.ParentBlockHash);
+        var initialBlockHashWithoutPow = CalculateBlockHashIn64Base(args.BlockNumber, args.CreatedAtUtc, args.Transactions, args.ParentBlockHash, args.AuthenticatedHashKey);
+        var powHash = ProofOfWork.Calculate(initialBlockHashWithoutPow, args.MiningDifficuly);
+        var blockSignature = SignBlockHash(powHash.HashIn64Base, args.CreatorNodeSigningKey);
+        return new BlockHeader(args.BlockNumber, args.CreatedAtUtc, powHash.HashIn64Base, blockSignature, powHash.Nonce, args.ParentBlockHash);
     }
 
     private static string CalculateBlockHashIn64Base(int blockNumber, DateTime createdAtUtc,

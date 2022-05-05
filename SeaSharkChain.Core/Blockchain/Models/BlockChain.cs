@@ -2,27 +2,29 @@
 
 public class BlockChain<T> : IBlockChain<T>
 {
-    private const int BlockRequiredNumberOfTransactions = 2;
 
     private readonly IClockService _clockService;
     private readonly IBlocksRepository<T> _blocksRepository;
     private readonly IKeyStore _keyStore;
+    private readonly BlockChainSettings _settings;
 
     private IBlock<T>? Genesis { get; set; }
     private IBlock<T>? CurrentBlock { get; set; }
 
-    public BlockChain(IClockService clockService, IBlocksRepository<T> blocksRepository, IKeyStore keyStore)
+    public BlockChain(IClockService clockService, IBlocksRepository<T> blocksRepository, IKeyStore keyStore,
+                      BlockChainSettings settings)
     {
         _clockService = clockService;
         _blocksRepository = blocksRepository;
         _keyStore = keyStore;
+        _settings = settings;
     }
 
     public async Task AcceptBlock(IEnumerable<ITransaction<T>> blockTransactions, CancellationToken cancellationToken)
     {
         var transactions = blockTransactions.ToList();
-        if (transactions.Count != BlockRequiredNumberOfTransactions)
-            throw new Exception($"A block with {transactions.Count} cannot be created. You need to supply {BlockRequiredNumberOfTransactions} transactions.");
+        if (transactions.Count != _settings.BlockRequiredNumberOfTransactions)
+            throw new Exception($"A block with {transactions.Count} cannot be created. You need to supply {_settings.BlockRequiredNumberOfTransactions} transactions.");
 
         var blockNumber = CurrentBlock?.Header.Number + 1 ?? 1;
         var createdAt = _clockService.NowUtc;
@@ -35,6 +37,7 @@ public class BlockChain<T> : IBlockChain<T>
             ParentBlockHash = parentHash,
             AuthenticatedHashKey = _keyStore.AuthenticatedHashKey,
             CreatorNodeSigningKey = _keyStore.GetNodeSignPrivateKey(),
+            MiningDifficuly = _settings.ProofOfWorkDifficulty,
         };
         var block = new Block<T>(newBlockArgs);
 
@@ -58,7 +61,7 @@ public class BlockChain<T> : IBlockChain<T>
             {
                 //TODO Creator Node != this Node
                 var creatorPublicKey = _keyStore.GetNodeSignPublicKey();
-                bool isValid = block.Verify(_keyStore.AuthenticatedHashKey, creatorPublicKey, lastVerifiedBlock?.Header.HashIn64Base);
+                bool isValid = block.Verify(_keyStore.AuthenticatedHashKey, _settings.ProofOfWorkDifficulty, creatorPublicKey, lastVerifiedBlock?.Header.HashIn64Base);
                 if (!isValid)
                     return false;
 
