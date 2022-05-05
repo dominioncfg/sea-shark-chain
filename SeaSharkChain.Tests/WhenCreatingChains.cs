@@ -4,7 +4,7 @@ using Xunit;
 
 namespace SeaSharkChain.Tests;
 
-public class WhenCreatingChains
+public class WhenCreatingChainsTransactionsTests : BlockChainsTestBase
 {
     [Fact]
     public async Task CanCreateChainWithSingleBlock()
@@ -13,7 +13,7 @@ public class WhenCreatingChains
         {
             BlockRequiredNumberOfTransactions = 2
         };
-        var transactions = GivenNTransactions(2);
+        var transactions = GivenNTransactions(numberOfTransactions: 2, startTransactionNumber: 1);
 
         var repository = new InMemoryUsersBlocksRepository();
         var chain = new BlockChain<DummyUser>(new ClockService(), repository, GivenDefaultKeyStore(), settings);
@@ -35,8 +35,8 @@ public class WhenCreatingChains
         {
             BlockRequiredNumberOfTransactions = 2
         };
-        var firstBlockTransactions = GivenNTransactions(2);
-        var secondBlockTransactions = GivenNTransactions(2);
+        var firstBlockTransactions = GivenNTransactions(numberOfTransactions: 2, startTransactionNumber: 1);
+        var secondBlockTransactions = GivenNTransactions(numberOfTransactions: 2, startTransactionNumber: 3);
 
         var repository = new InMemoryUsersBlocksRepository();
         var chain = new BlockChain<DummyUser>(new ClockService(), repository, GivenDefaultKeyStore(), settings);
@@ -51,67 +51,8 @@ public class WhenCreatingChains
         storedFirstBlockTransactions.Should().HaveCount(2);
         storedFirstBlockTransactions.Should().BeEquivalentTo(firstBlockTransactions);
 
-        var storedSecondBlockTransactions = blocksCreated.First().Transactions;
+        var storedSecondBlockTransactions = blocksCreated.Last().Transactions;
         storedSecondBlockTransactions.Should().HaveCount(2);
         storedSecondBlockTransactions.Should().BeEquivalentTo(secondBlockTransactions);
-    }
-
-    [Fact]
-    public async Task VerifyReturnsTrueForChainWithSingleBlock()
-    {
-        var settings = new BlockChainSettings()
-        {
-            BlockRequiredNumberOfTransactions = 2
-        };
-        var firstBlockTransactions = GivenNTransactions(2);
-
-        var repository = new InMemoryUsersBlocksRepository();
-        var chain = new BlockChain<DummyUser>(new ClockService(), repository, GivenDefaultKeyStore(), settings);
-
-        await chain.AcceptBlock(firstBlockTransactions, default);
-
-        var result = await chain.Verify(default);
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task VerifyReturnsTrueForChainWithTwoBlocks()
-    {
-        var settings = new BlockChainSettings()
-        {
-            BlockRequiredNumberOfTransactions = 2
-        };
-        var firstBlockTransactions = GivenNTransactions(2);
-        var secondBlockTransactions = GivenNTransactions(2);
-
-        var repository = new InMemoryUsersBlocksRepository();
-        var chain = new BlockChain<DummyUser>(new ClockService(), repository, GivenDefaultKeyStore(), settings);
-
-        await chain.AcceptBlock(firstBlockTransactions, default);
-        await chain.AcceptBlock(secondBlockTransactions, default);
-
-        var result = await chain.Verify(default);
-        result.Should().BeTrue();
-    }
-
-    private static IKeyStore GivenDefaultKeyStore()
-    {
-        return new InMemoryKeyStore(CryptographicKey.CreateRandomOfBytes(16).Bytes);
-    }
-
-    private static List<ITransaction<DummyUser>> GivenNTransactions(int n)
-    {
-        var transactions = new List<ITransaction<DummyUser>>();
-        for (int i = 1; i <= n; i++)
-        {
-            var transaction = new Transaction<DummyUser>(new DummyUser()
-            {
-                Id = 1,
-                FirstName = "Fn",
-                LastName = "Ln",
-            });
-            transactions.Add(transaction);
-        }
-        return transactions;
     }
 }

@@ -39,7 +39,7 @@ public class BlockChain<T> : IBlockChain<T>
             CreatorNodeSigningKey = _keyStore.GetNodeSignPrivateKey(),
             MiningDifficuly = _settings.ProofOfWorkDifficulty,
         };
-        var block = new Block<T>(newBlockArgs);
+        var block = Block<T>.MineNewBlock(newBlockArgs);
 
         await _blocksRepository.Add(block, cancellationToken);
 

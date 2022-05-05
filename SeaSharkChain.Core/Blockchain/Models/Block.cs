@@ -6,10 +6,25 @@ public class Block<T> : IBlock<T>
     public BlockHeader Header { get; }
     public IReadOnlyList<ITransaction<T>> Transactions => _transactions.AsReadOnly();
 
-    public Block(BlockCreationArgs<T> args)
+    protected Block(BlockCreationArgs<T> args)
     {
         Header = CreateHeaders(args);
         _transactions = new(args.Transactions);
+    }
+
+    public static Block<T> MineNewBlock(BlockCreationArgs<T> args) => new(args);
+
+    protected Block(BlockHeader header, IEnumerable<ITransaction<T>> transactions)
+    {
+        Header = header;
+        _transactions = transactions.ToList();
+    }
+
+    public static Block<T> Clone(Block<T> b)
+    {
+        var clonedHeader = new BlockHeader(b.Header.Number, b.Header.CreatedAtUtc, b.Header.HashIn64Base,
+                                           b.Header.BlockNodeSignature, b.Header.PowNonce, b.Header.PreviousBlockHashIn64Base);
+        return new Block<T>(clonedHeader, b.Transactions);
     }
 
     public bool Verify(byte[] authenticatedHashKey, int difficulty, byte[] nodeVerificationPublicKey, string? recalculatedParentBlockHash = null)

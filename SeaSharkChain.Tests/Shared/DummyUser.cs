@@ -1,8 +1,8 @@
 ﻿namespace SeaSharkChain.Tests;
 
-public class DummyUser
+public record DummyUser
 {
-    public int Id { get; set; }
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
+    public int Id { get; init; }
+    public string FirstName { get; init; } = string.Empty;
+    public string LastName { get; init; } = string.Empty;
 }

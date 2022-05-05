@@ -17,10 +17,22 @@ public class InMemoryUsersBlocksRepository : IBlocksRepository<DummyUser>
         var transactions = _storage
             .Skip(blockNumber - 1)
             .Take(count)
+            .Select(x => MapFromStorage(x))
             .ToList();
         return Task.FromResult<IEnumerable<Block<DummyUser>>>(transactions);
     }
 
+    public IReadOnlyList<Block<DummyUser>> GetAllBlocks()
+    {
+        return _storage
+            .ToList()
+            .AsReadOnly();
+    }
 
-    public IReadOnlyList<Block<DummyUser>> GetAllBlocks() => _storage.AsReadOnly();
+
+    private static Block<DummyUser> MapFromStorage(Block<DummyUser> block)
+    {
+        //Simulate that we are actually storing blocks
+        return Block<DummyUser>.Clone(block);
+    }
 }
